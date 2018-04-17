@@ -30,3 +30,32 @@ img[res[:,1],res[:,0]]=[0,0,255]
 img[res[:,3],res[:,2]] = [0,255,0]
 
 cv2.imwrite('subpixel5.png',img)
+
+angles = []
+cornersint = np.int0(corners)
+n = s = e = w = 0
+for i in cornersint:
+    n = s = e = w = 0
+    for j in cornersint:
+        if i[1]+10 > j[1] and i[1]-10 < j[1]:
+            if i[0]<j[0]:
+                e = e+1
+            if i[0] > j[0]:
+                w = w + 1
+        if i[0]+10 > j[0] and i[0]-10 < j[0]:
+            if i[1]<j[1]:
+                s = s+1
+            if i[1] > j[1]:
+                n = n + 1
+    if n==0 and w==0:
+        angles.append([i[0],i[1]])
+    if n==0 and e==0:
+        angles.append([i[0],i[1]])
+    if s == 0 and w == 0:
+        angles.append([i[0],i[1]])
+    if s == 0 and e == 0:
+        angles.append([i[0],i[1]])
+
+img[angles[:,1],angles[:,0]] = [255,255,0]
+cv2.imwrite('angles.png',img)
+print(angles)
