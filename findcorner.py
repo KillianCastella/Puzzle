@@ -55,7 +55,8 @@ for i in cornersint:
         angles.append([i[0],i[1]])
     if s == 0 and e == 0:
         angles.append([i[0],i[1]])
-
-img[angles[:,1],angles[:,0]] = [255,255,0]
+posx, posy = zip(*angles)
+print([posy[:],posx[:]])
+img[posy[:],posx[:]] = [255,0,0]
 cv2.imwrite('angles.png',img)
 print(angles)
