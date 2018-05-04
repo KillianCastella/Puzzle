@@ -60,3 +60,5 @@ print([posy[:],posx[:]])
 img[posy[:],posx[:]] = [255,0,0]
 cv2.imwrite('angles.png',img)
 print(angles)
+height, width = img.shape[:2]
+print(height, width)
