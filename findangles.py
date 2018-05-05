@@ -1,67 +1,29 @@
-import cv2
 import numpy as np
-
-def workimg(path):
-    print(path)
-    img =  cv2.imread("img/"+path)
-    
-    imgRGB = cv2.imread("img/"+path,cv2.IMREAD_UNCHANGED)
-    channels = cv2.split(imgRGB)
-    imgray = cv2.cvtColor(imgRGB, cv2.COLOR_BGR2GRAY)
-    if imgRGB is None:
-        print("erreur ouverture fichier")
-    ret, gray = cv2.threshold(channels[3], 127, 255, 0)
-
-    # find Harris corners
-    gray = np.float32(gray)
-    dst = cv2.cornerHarris(gray,2,3,0.04)
-    dst = cv2.dilate(dst,None)
-    factor=0.02
-    while True : 
-        try:
-            ret, dst = cv2.threshold(dst,factor*dst.max(),255,0)
-            dst = np.uint8(dst)
-
-            # find centroids
-            ret, labels, stats, centroids = cv2.connectedComponentsWithStats(dst)
-
-            # define the criteria to stop and refine the corners
-            criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
-            corners = cv2.cornerSubPix(gray,np.float32(centroids),(5,5),(-1,-1),criteria)
-
-            # Now draw them
-            res = np.hstack((centroids,corners))
-            res = np.int0(res)
-            img[res[:,1],res[:,0]]=[0,0,255]
-            img[res[:,3],res[:,2]] = [0,255,0]
-            break
-        except:   
-            factor = factor + 0.02
-            print("up")
-
-    angles = []
-    cornersint = np.int0(corners)
-    height, width = img.shape[:2]
+import cv2
+from scipy.spatial import distance
+import math
+import os
 
 
-def distpp(p1,p2):
-    return (p1[0]-p2[0])*(p1[0]-p2[0])+(p1[1]-p2[1])*(p1[1]-p2[1])
+def distpp(p1, p2):
+    '''Méthode rendant la distance entre les deux points entrés en paramètres'''
+    #return (p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1])
+    return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
+
 
 def findangle(datas, w, h):
+    '''Méthode grossière pour trouver les angles'''
+    angles = []
     c1 = (0, 0)
     c2 = (w, 0)
     c3 = (w, h)
     c4 = (0, h)
-    #il est possible de rajouter facilement un point de contrôle supplémentaire.
+    # il est possible de rajouter facilement un point de contrôle supplémentaire.
     angle1 = [c1, [datas[0], distpp(c1, datas[0])], [datas[0], distpp(c1, datas[0])]]
     angle2 = [c2, [datas[0], distpp(c2, datas[0])], [datas[0], distpp(c2, datas[0])]]
     angle3 = [c3, [datas[0], distpp(c3, datas[0])], [datas[0], distpp(c3, datas[0])]]
     angle4 = [c4, [datas[0], distpp(c4, datas[0])], [datas[0], distpp(c4, datas[0])]]
     angletest = [angle1, angle2, angle3, angle4]
-    '''test laissé si besoin
-    itercorners = iter(datas)
-    next(itercorners)
-    #for point in itercorners:'''
     for point in datas[1:]:
         for i in angletest:
             temp = distpp(point, i[0])
@@ -76,106 +38,154 @@ def findangle(datas, w, h):
 
     for i in angletest:
         angles.append(i[1][0])
+    return angles
 
 
-cotes = []
+''' Tentative d'amélioration de la recherche d'angle
+def checkangles(angles, ):
+    for d in qdens:
+        if d < 1:
+            if i == 0:
+                angles[i] = [0, 0]
+            elif i == 1:
+                angles[i] = [width - 1, 0]
+            elif i == 2:
+                angles[i] = [width - 1, height - 1]
+            elif i == 3:
+                angles[i] = [0, height - 1]
+        i += 1
 
 
-def calculfx(x, dia):
-    #print("  fx: ", dia[1][1]*(x-dia[0][0])/dia[1][0] + dia[0][1])
-    return dia[1][1]*(x-dia[0][0])/dia[1][0] + dia[0][1]
+#def anglefinder(quart, w, h):
+'''
 
 
-def calculfy(y, dia):
-    #print("  fy: ", dia[1][0]*(y-dia[0][1])/dia[1][1] + dia[0][0])
-    return dia[1][0]*(y-dia[0][1])/dia[1][1] + dia[0][0]
-
-
-q1 = []
-q2 = []
-q3 = []
-q4 = []
-
-
-def density(data):
+def density(data, w, h):
+    '''Méthode séparant les points par quadrans et comptant le nombre dans chacun'''
     q = [0, 0, 0, 0]
-    q1.clear()
-    q2.clear()
-    q3.clear()
-    q4.clear()
+    q1 = []
+    q2 = []
+    q3 = []
+    q4 = []
     for i in data:
-        if 0 <= i[0] < int(width/2):
-            if 0 <= i[1] < height/2:
+        if 0 <= i[0] < w/2:
+            if 0 <= i[1] < h/2:
                 q[0] += 1
                 q1.append(i)
-            if height / 2 <= i[1] <= height:
+            if h / 2 <= i[1] <= h:
                 q[3] += 1
                 q4.append(i)
-        elif width/2 <= i[0] <= width:
-            if 0 <= i[1] < height / 2:
+        elif w/2 <= i[0] <= w:
+            if 0 <= i[1] < h / 2:
                 q[1] += 1
                 q2.append(i)
-            if height / 2 <= i[1] <= height:
+            if h / 2 <= i[1] <= h:
                 q[2] += 1
                 q3.append(i)
-    return q
+    return q, q1, q2, q3, q4
 
 
-def firstdist(data, used, p):
-    #used ne doit pas être vide
-    for i in data:
-        if not any(t[0] == i[0] and t[1] == i[1] for t in used):
-            return [i, distpp(p, i)]
+def closest_node(node, nodes):
+    '''Méthode permettant de trouver le point d'une liste étant le plus proche du point passé en paramètre.'''
+    closest_index = distance.cdist([node], nodes).argmin()
+    return nodes[closest_index]
 
 
-def mindist(data, used, p, dist):
-    ptemp = p
-    for i in data:
-        if not any(t[0] == i[0] and t[1] == i[1] for t in used):
-            newdist = distpp(i, p)
-            if newdist <= dist:
-                ptemp = i
-                dist = newdist
-    return [ptemp, dist]
-
-
-def sides(data, angle, nbpoints):
+def side_test(datas, angle, nbpoints):
+    '''Méthode qui va initier la conception des 4 côtés d'une pièce.'''
     d = angle
-    used = []
-    used.append(angle)
-    #define destination
-    f, distd = firstdist(data, used, angle)
-    used.append(f)
-    sf = [angle,f]
-    sd = [angle]
-    #find next dist
-    tempd, x = firstdist(data, used, d)
-    tempf, y = firstdist(data, used, f)
-    while nbpoints >0:
-        tempd, x = mindist(data, used, d, x)
-        tempf, y = mindist(data, used, f, y)
-        if x < y:
-            sd.append(tempd)
-            used.append(tempd)
-            d = tempd
-        elif y < x:
-            sf.append(tempf)
-            used.append(tempf)
-            f = tempf
-        print(sd)
-        print(sf)
-        nbpoints -= 1
+    cd = [angle]
+    cf = [angle]
+    if nbpoints<2:
+        f = angle
+    else:
+        datas.remove(d)
+        f = closest_node(d, datas)
+        datas.remove(f)
+        cf.append(f)
+        if nbpoints > 2:
+            nbpoints -= 2
+            while nbpoints >0:
+                '''Pour plus de sureté, on essaie de parcourir les deux côtés d'un angle en même temps.
+                   Cela permet de supprimer un nombre certains d'erreur.'''
+                wayd = distpp(angle, d)
+                wayf = distpp(angle, f)
+                if wayd > wayf:
+                    newpoint = closest_node(f, datas)
+                else:
+                    newpoint = closest_node(d, datas)
+                testd = distpp(newpoint, d)
+                testf = distpp(newpoint, f)
+                if testd < testf:
+                    cd.append(newpoint)
+                    d = newpoint
+                else:
+                    cf.append(newpoint)
+                    f = newpoint
+                nbpoints -= 1
+                datas.remove(newpoint)
+    return d, f, cd, cf
 
 
-findangle(cornersint, width, height)
-qdens = density(cornersint)
-sides(q2, angles[1], qdens[1])
+def working(path):
+    '''Méthode gérant la classification des pièces ainsi que les modifications de leur image.'''
+    img = cv2.imread("img/"+path)
+    imgRGB = cv2.imread("img/"+path,cv2.IMREAD_UNCHANGED)
+    channels = cv2.split(imgRGB)
+    imgray = cv2.cvtColor(imgRGB, cv2.COLOR_BGR2GRAY)
+    if imgRGB is None:
+        print("erreur ouverture fichier")
+    #obtention des contours en passant par l'image du canal alpha
+    ret, gray = cv2.threshold(channels[3], 127, 255, 0)
+    ret,thresh = cv2.threshold(channels[3],127,255,0)
+    im2, contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    #dessin des contours de la pièce
+    cv2.drawContours(img, contours, -1, (0,255,0), 1)
+    #obtention des coins de la pièce avec la méthode des bon traits à relever
+    corners = cv2.goodFeaturesToTrack(gray, 300, 0.01, 5)
+    corners = np.int0(corners)
+    data = []
+    for corner in corners:
+        x, y = corner.ravel()
+        data.append([x,y])
+        cv2.circle(img, (x, y), 1, 1, -1)
+    #acquisition des valeurs nécessaires à l'étude des pièces
+    height, width = img.shape[:2]
+    angles = findangle(data, width, height)
+    qdens, q1, q2, q3, q4 = density(data, width, height)
+    #mise en place des coins
+    corner1 = side_test(q1, angles[0], qdens[0])
+    corner2 = side_test(q2, angles[1], qdens[1])
+    corner3 = side_test(q3, angles[2], qdens[2])
+    corner4 = side_test(q4, angles[3], qdens[3])
+    #dessin corner1
+    posx, posy = zip(*corner1[2])
+    img[posy[:], posx[:]] = [0,255,0]
+    posx, posy = zip(*corner1[3])
+    img[posy[:], posx[:]] = [255,0,0]
+    #dessin corner2
+    posx, posy = zip(*corner2[2])
+    img[posy[:], posx[:]] = [0,255,0]
+    posx, posy = zip(*corner2[3])
+    img[posy[:], posx[:]] = [255,0,0]
+    #dessin corner3
+    posx, posy = zip(*corner3[2])
+    img[posy[:], posx[:]] = [0,255,0]
+    posx, posy = zip(*corner3[3])
+    img[posy[:], posx[:]] = [255,0,0]
+    #dessin corner4
+    posx, posy = zip(*corner4[2])
+    img[posy[:], posx[:]] = [0,255,0]
+    posx, posy = zip(*corner4[3])
+    img[posy[:], posx[:]] = [255,0,0]
+    #dessin angles
+    posx, posy = zip(*angles)
+    img[posy[:], posx[:]] = [255,255,255]
+    #enregistrement de l'image dans un fichier
+    cv2.imwrite('imtest.png',img)
 
-#defineside(angles)
-#print(cotes)
 
-posx, posy = zip(*angles)
-#print([posy[:], posx[:]])
-img[posy[:], posx[:]] = [255,0,0]
-cv2.imwrite('angles2.png',img)
-#print(angles)
+if __name__ == "__main__":
+    listing = os.listdir("img")
+    for list in listing:
+        working(list)
