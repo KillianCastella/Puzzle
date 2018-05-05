@@ -2,16 +2,56 @@ import cv2
 import numpy as np
 import os
 
+def distpp(p1,p2):
+    return (p1[0]-p2[0])*(p1[0]-p2[0])+(p1[1]-p2[1])*(p1[1]-p2[1])
+
+    
+def findangle(datas, w, h):
+    angles = []
+    c1 = (0, 0)
+    c2 = (w, 0)
+    c3 = (w, h)
+    c4 = (0, h)
+    #il est possible de rajouter facilement un point de contrôle supplémentaire.
+    angle1 = [c1, [datas[0], distpp(c1, datas[0])], [datas[0], distpp(c1, datas[0])]]
+    angle2 = [c2, [datas[0], distpp(c2, datas[0])], [datas[0], distpp(c2, datas[0])]]
+    angle3 = [c3, [datas[0], distpp(c3, datas[0])], [datas[0], distpp(c3, datas[0])]]
+    angle4 = [c4, [datas[0], distpp(c4, datas[0])], [datas[0], distpp(c4, datas[0])]]
+    angletest = [angle1, angle2, angle3, angle4]
+    '''test laissé si besoin
+    itercorners = iter(datas)
+    next(itercorners)
+    #for point in itercorners:'''
+    for point in datas[1:]:
+        for i in angletest:
+            temp = distpp(point, i[0])
+            if i[1][1] > temp:
+                i[2][1] = i[1][1]
+                i[2][0] = i[1][0]
+                i[1][1] = temp
+                i[1][0] = point
+            elif i[2][1] > temp:
+                i[2][1] = temp
+                i[2][0] = point
+
+    for i in angletest:
+        angles.append(i[1][0])
+    return angles
+
+
 def workimg(path):
     print(path)
     img =  cv2.imread("img/"+path)
-    
     imgRGB = cv2.imread("img/"+path,cv2.IMREAD_UNCHANGED)
+
     channels = cv2.split(imgRGB)
     imgray = cv2.cvtColor(imgRGB, cv2.COLOR_BGR2GRAY)
     if imgRGB is None:
         print("erreur ouverture fichier")
     ret, gray = cv2.threshold(channels[3], 127, 255, 0)
+
+    _, contours, _ = cv2.findContours(gray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    cv2.drawContours(img, contours, -1, (0,0,0), 1)
 
     # find Harris corners
     gray = np.float32(gray)
@@ -35,13 +75,19 @@ def workimg(path):
             res = np.int0(res)
             img[res[:,1],res[:,0]]=[0,0,255]
             img[res[:,3],res[:,2]] = [0,255,0]
-            break 
+            break
         except:   
             factor = factor + 0.02
-
-
+    cornersint = np.int0(corners)
+    height, width = img.shape[:2]
+    angles=findangle(cornersint, width, height)
+    posx, posy = zip(*angles)
+    img[posy[:], posx[:]] = [255,0,0]
     cv2.imwrite("im2/"+path,img)
 
-listing = os.listdir("img")
-for list in listing:
-    workimg(list)
+def main():
+    listing = os.listdir("img")
+    for list in listing:
+        workimg(list)
+
+main()
