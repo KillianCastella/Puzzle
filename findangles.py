@@ -35,8 +35,17 @@ angles = []
 cornersint = np.int0(corners)
 height, width = img.shape[:2]
 
+
 def distpp(p1,p2):
     return (p1[0]-p2[0])*(p1[0]-p2[0])+(p1[1]-p2[1])*(p1[1]-p2[1])
+
+
+matdist = []
+for m in cornersint:
+    line = []
+    for n in cornersint:
+        line.append(distpp(m, n))
+    matdist.append(line)
 
 
 def findangle(datas, w, h):
@@ -74,50 +83,100 @@ cotes = []
 
 
 def calculfx(x, dia):
-    print("  fx: ", dia[1][1]*(x-dia[0][0])/dia[1][0] + dia[0][1])
+    #print("  fx: ", dia[1][1]*(x-dia[0][0])/dia[1][0] + dia[0][1])
     return dia[1][1]*(x-dia[0][0])/dia[1][0] + dia[0][1]
 
 
 def calculfy(y, dia):
-    print("  fy: ", dia[1][0]*(y-dia[0][1])/dia[1][1] + dia[0][0])
+    #print("  fy: ", dia[1][0]*(y-dia[0][1])/dia[1][1] + dia[0][0])
     return dia[1][0]*(y-dia[0][1])/dia[1][1] + dia[0][0]
 
 
-def defineside(listcorners):
-    cote1 = []
-    cote2 = []
-    cote3 = []
-    cote4 = []
-    diago1 = [listcorners[0], [listcorners[2][0]-listcorners[0][0], listcorners[2][1]-listcorners[0][1]]]
-    diago2 = [listcorners[3], [listcorners[1][0]-listcorners[3][0], listcorners[1][1]-listcorners[3][1]]]
-    print(cornersint)
-    for point in cornersint:
-        print("  ", point)
-        if listcorners[0][0] < point[0] < listcorners[1][0]:
-            if point[1] < calculfx(point[0], diago1) and point[1] < calculfx(point[0], diago2):
-                cote1.append(point)
-        elif listcorners[1][1] < point[1] < listcorners[2][1]:
-            if point[0] < calculfy(point[1], diago1) and point[0] < calculfy(point[1], diago2):
-                cote2.append(point)
-        elif listcorners[3][0] < point[0] < listcorners[2][0]:
-            if point[1] > calculfx(point[0], diago1) and point[1] > calculfx(point[0], diago2):
-                cote3.append(point)
-        elif listcorners[0][1] < point[1] < listcorners[3][1]:
-            if point[0] > calculfy(point[1], diago1) and point[0] > calculfy(point[1], diago2):
-                cote4.append(point)
-    cotes.append(cote1)
-    cotes.append(cote2)
-    cotes.append(cote3)
-    cotes.append(cote4)
+q1 = []
+q2 = []
+q3 = []
+q4 = []
+
+
+def density(data):
+    q = [0, 0, 0, 0]
+    q1.clear()
+    q2.clear()
+    q3.clear()
+    q4.clear()
+    for i in data:
+        if 0 <= i[0] < int(width/2):
+            if 0 <= i[1] < height/2:
+                q[0] += 1
+                q1.append(i)
+            if height / 2 <= i[1] <= height:
+                q[3] += 1
+                q4.append(i)
+        elif width/2 <= i[0] <= width:
+            if 0 <= i[1] < height / 2:
+                q[1] += 1
+                q2.append(i)
+            if height / 2 <= i[1] <= height:
+                q[2] += 1
+                q3.append(i)
+    return q
+
+
+def firstdist(data, used, p):
+    #used ne doit pas être vide
+    for i in data:
+        if not any(t[0] == i[0] and t[1] == i[1] for t in used):
+            return [i, distpp(p, i)]
+
+
+def mindist(data, used, p, dist):
+    ptemp = p
+    for i in data:
+        if not any(t[0] == i[0] and t[1] == i[1] for t in used):
+            newdist = distpp(i, p)
+            if newdist <= dist:
+                ptemp = i
+                dist = newdist
+    return [ptemp, dist]
+
+
+def sides(data, angle, nbpoints):
+    d = angle
+    used = []
+    used.append(angle)
+    #define destination
+    f, distd = firstdist(data, used, angle)
+    used.append(f)
+    sf = [angle,f]
+    sd = [angle]
+    #find next dist
+    tempd, x = firstdist(data, used, d)
+    tempf, y = firstdist(data, used, f)
+    while nbpoints >0:
+        tempd, x = mindist(data, used, d, x)
+        tempf, y = mindist(data, used, f, y)
+        if x < y:
+            sd.append(tempd)
+            used.append(tempd)
+            d = tempd
+        elif y < x:
+            sf.append(tempf)
+            used.append(tempf)
+            f = tempf
+        print(sd)
+        print(sf)
+        nbpoints -= 1
 
 
 findangle(cornersint, width, height)
+qdens = density(cornersint)
+sides(q2, angles[1], qdens[1])
 
-defineside(angles)
-print(cotes)
+#defineside(angles)
+#print(cotes)
 
 posx, posy = zip(*angles)
-print([posy[:], posx[:]])
+#print([posy[:], posx[:]])
 img[posy[:], posx[:]] = [255,0,0]
 cv2.imwrite('angles2.png',img)
-print(angles)
+#print(angles)
