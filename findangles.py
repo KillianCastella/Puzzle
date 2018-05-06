@@ -11,13 +11,15 @@ def distpp(p1, p2):
     return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
 
 
-def findangle(datas, w, h):
+def findangle(datas, w, h, qdens):
     '''Méthode grossière pour trouver les angles'''
     angles = []
     c1 = (0, 0)
     c2 = (w, 0)
     c3 = (w, h)
     c4 = (0, h)
+    #Variables du second test
+    atangle = 0
     # il est possible de rajouter facilement un point de contrôle supplémentaire.
     angle1 = [c1, [datas[0], distpp(c1, datas[0])], [datas[0], distpp(c1, datas[0])]]
     angle2 = [c2, [datas[0], distpp(c2, datas[0])], [datas[0], distpp(c2, datas[0])]]
@@ -38,6 +40,17 @@ def findangle(datas, w, h):
 
     for i in angletest:
         angles.append(i[1][0])
+    for d in qdens:
+        if d < 1:
+            if atangle == 0:
+                angles[atangle] = [0, 0]
+            elif atangle == 1:
+                angles[atangle] = [w - 1, 0]
+            elif atangle == 2:
+                angles[atangle] = [w - 1, h - 1]
+            elif atangle == 3:
+                angles[atangle] = [0, h - 1]
+        atangle += 1
     return angles
 
 
@@ -127,6 +140,28 @@ def side_test(datas, angle, nbpoints):
     return d, f, cd, cf
 
 
+def fullside(c1, c2, x, y):
+    '''Méthode pour relier les coins entre eux afin de former les côtés.'''
+    c1a = distpp(c1[0], [x, y])
+    c1b = distpp(c1[1], [x, y])
+    c2b = distpp(c2[1], [x, y])
+    c2a = distpp(c2[0], [x, y])
+    c2p1 = c2[2]
+    c2p1.reverse()
+    c2p2 = c2[3]
+    c2p2.reverse()
+    if c1a < c1b:
+        if c2a <= c2b:
+            return c1[2] + c2p1
+        else:
+            return c1[2] + c2p2
+    else:
+        if c2a <= c2b:
+            return c1[3] + c2p1
+        else:
+            return c1[3] + c2p2
+
+
 def working(path):
     '''Méthode gérant la classification des pièces ainsi que les modifications de leur image.'''
     img = cv2.imread("img/"+path)
@@ -151,17 +186,22 @@ def working(path):
         cv2.circle(img, (x, y), 1, 1, -1)
     #acquisition des valeurs nécessaires à l'étude des pièces
     height, width = img.shape[:2]
-    angles = findangle(data, width, height)
     qdens, q1, q2, q3, q4 = density(data, width, height)
+    angles = findangle(data, width, height, qdens)
     #mise en place des coins
     corner1 = side_test(q1, angles[0], qdens[0])
     corner2 = side_test(q2, angles[1], qdens[1])
     corner3 = side_test(q3, angles[2], qdens[2])
     corner4 = side_test(q4, angles[3], qdens[3])
+    side1 = fullside(corner1, corner2, width/2, 0)
+    side2 = fullside(corner2, corner3, width, height/2)
+    side3 = fullside(corner3, corner4, width/2, height)
+    side4 = fullside(corner4, corner1, 0, height/2)
+
     #dessin corner1
-    posx, posy = zip(*corner1[2])
-    img[posy[:], posx[:]] = [0,255,0]
-    posx, posy = zip(*corner1[3])
+    posx, posy = zip(*side1)
+    img[posy[:], posx[:]] = [0,0,255]
+    '''posx, posy = zip(*corner1[3])
     img[posy[:], posx[:]] = [255,0,0]
     #dessin corner2
     posx, posy = zip(*corner2[2])
@@ -177,12 +217,12 @@ def working(path):
     posx, posy = zip(*corner4[2])
     img[posy[:], posx[:]] = [0,255,0]
     posx, posy = zip(*corner4[3])
-    img[posy[:], posx[:]] = [255,0,0]
+    img[posy[:], posx[:]] = [255,0,0]'''
     #dessin angles
     posx, posy = zip(*angles)
     img[posy[:], posx[:]] = [255,255,255]
     #enregistrement de l'image dans un fichier
-    cv2.imwrite('imtest.png',img)
+    cv2.imwrite("imtest/" + path, img)
 
 
 if __name__ == "__main__":
