@@ -8,7 +8,7 @@ Requirements :
 How to use : 
 	- python findCornersHarris.py
 or :
-	- python findCornersShitomasi
+	- python findCornersShitomasi.py
 
 	This commands will iterate over the images in the directory img. 
 	You can change the default images if you want(piece border is defined with alpha channel)
