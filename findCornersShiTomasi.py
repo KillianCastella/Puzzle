@@ -20,10 +20,10 @@ def findangle(datas, w, h, qdens):
     #Variables du second test
     atangle = 0
     # il est possible de rajouter facilement un point de contrôle supplémentaire.
-    angle1 = [c1, [datas[0], distpp(c1, datas[0])], [datas[0], distpp(c1, datas[0])], [datas[0], distpp(c1, datas[0])]]
-    angle2 = [c2, [datas[0], distpp(c2, datas[0])], [datas[0], distpp(c2, datas[0])], [datas[0], distpp(c2, datas[0])]]
-    angle3 = [c3, [datas[0], distpp(c3, datas[0])], [datas[0], distpp(c3, datas[0])], [datas[0], distpp(c3, datas[0])]]
-    angle4 = [c4, [datas[0], distpp(c4, datas[0])], [datas[0], distpp(c4, datas[0])], [datas[0], distpp(c4, datas[0])]]
+    angle1 = [c1, [datas[0], distpp(c1, datas[0])], [datas[0], distpp(c1, datas[0])]]
+    angle2 = [c2, [datas[0], distpp(c2, datas[0])], [datas[0], distpp(c2, datas[0])]]
+    angle3 = [c3, [datas[0], distpp(c3, datas[0])], [datas[0], distpp(c3, datas[0])]]
+    angle4 = [c4, [datas[0], distpp(c4, datas[0])], [datas[0], distpp(c4, datas[0])]]
     angletest = [angle1, angle2, angle3, angle4]
     #recherche des points les plus proches des coins de l'image
     for point in datas[1:]:
@@ -35,13 +35,8 @@ def findangle(datas, w, h, qdens):
                 i[1][1] = temp
                 i[1][0] = point
             elif i[2][1] > temp:
-                i[3][1] = i[2][1]
-                i[3][0] = i[2][0]
                 i[2][1] = temp
                 i[2][0] = point
-            elif i[3][1] > temp:
-                i[3][1] = temp
-                i[3][0] = point
     for i in angletest:
         angles.append(i[1][0])
     #vérification de la présence du point dans le cadran
@@ -229,34 +224,96 @@ def side_test(datas, angle, nbpoints):
     return d, f, cd, cf
 
 
-def fullside(c1, c2, x, y, controlx1, controlx2, controly1, controly2):
+def fullside(c1, c2, c3, c4):
     '''Méthode pour relier les coins entre eux afin de former les côtés.'''
-    c1a = distpp(c1[0], [x, y])
-    c1b = distpp(c1[1], [x, y])
-    c2b = distpp(c2[1], [x, y])
-    c2a = distpp(c2[0], [x, y])
+    p1=0
+    p2=0
+    points = []
+    points.append([c1[0], 1, 0, c1[2]])
+    points.append([c1[1], 1, 0, c1[3]])
+    points.append([c2[0], 2, 0, c2[2]])
+    points.append([c2[1], 2, 0, c2[3]])
+    points.append([c3[0], 3, 0, c3[2]])
+    points.append([c3[1], 3, 0, c3[3]])
+    points.append([c4[0], 4, 0, c4[2]])
+    points.append([c4[1], 4, 0, c4[3]])
 
-    cx1 = distpp(c1[0], [controlx1, controly1])
-    cy1 = distpp(c1[1], [controlx1, controly1])
-    cy2 = distpp(c2[1], [controlx2, controly2])
-    cx2 = distpp(c2[0], [controlx2, controly2])
-    #inversion des fins des côtés
-    c2p1 = c2[2]
-    c2p1.reverse()
-    c2p2 = c2[3]
-    c2p2.reverse()
-    #test pour assembler les côtés
-    if c1a < c1b:
-        if c2a <= c2b:
-            return c1[2] + c2p1
-        else:
-            return c1[2] + c2p2
-    else:
-        if c2a <= c2b:
-            return c1[3] + c2p1
-        else:
-            return c1[3] + c2p2
+    full = 0
+    for i in range(7):
+        for j in range(i+1,8):
+            if points[i][2]==0 and points[j] == 0 and (points[i][1]+points[j][1])%2 ==1:
+                if full == 0:
+                    dist = distpp(points[i][0], points[j][0])
+                    p1 = i
+                    p2 = j
+                    full = 1
+                else:
+                    tempdist = distpp(points[i][0], points[j][0])
+                    if tempdist < dist:
+                        dist = tempdist
+                        p1 = i
+                        p2 = j
+    side1 = points[p1][3] + points[p2][3]
+    points[p1][2] = 1
+    points[p2][2] = 1
 
+    full = 0
+    for i in range(7):
+        for j in range(i + 1, 8):
+            if points[i][2] == 0 and points[j] == 0 and (points[i][1] + points[j][1]) % 2 == 1:
+                if full == 0:
+                    dist = distpp(points[i][0], points[j][0])
+                    p1 = i
+                    p2 = j
+                    full = 1
+                else:
+                    tempdist = distpp(points[i][0], points[j][0])
+                    if tempdist < dist:
+                        dist = tempdist
+                        p1 = i
+                        p2 = j
+    side2 = points[p1][3] + points[p2][3]
+    points[p1][2] = 1
+    points[p2][2] = 1
+
+    full = 0
+    for i in range(7):
+        for j in range(i + 1, 8):
+            if points[i][2] == 0 and points[j] == 0 and (points[i][1] + points[j][1]) % 2 == 1:
+                if full == 0:
+                    dist = distpp(points[i][0], points[j][0])
+                    p1 = i
+                    p2 = j
+                    full = 1
+                else:
+                    tempdist = distpp(points[i][0], points[j][0])
+                    if tempdist < dist:
+                        dist = tempdist
+                        p1 = i
+                        p2 = j
+    side3 = points[p1][3] + points[p2][3]
+    points[p1][2] = 1
+    points[p2][2] = 1
+
+    full = 0
+    for i in range(7):
+        for j in range(i + 1, 8):
+            if points[i][2] == 0 and points[j] == 0 and (points[i][1] + points[j][1]) % 2 == 1:
+                if full == 0:
+                    dist = distpp(points[i][0], points[j][0])
+                    p1 = i
+                    p2 = j
+                    full = 1
+                else:
+                    tempdist = distpp(points[i][0], points[j][0])
+                    if tempdist < dist:
+                        dist = tempdist
+                        p1 = i
+                        p2 = j
+    side4 = points[p1][3] + points[p2][3]
+    points[p1][2] = 1
+    points[p2][2] = 1
+    return side1, side2, side3, side4
 
 def working(path):
     '''Méthode gérant la classification des pièces ainsi que les modifications de leur image.'''
@@ -271,44 +328,72 @@ def working(path):
     im2, contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     #dessin des contours de la pièce
     cv2.drawContours(img, contours, -1, (0,255,0), 1)
-    #obtention des coins de la pièce avec la méthode des bon traits à relever
+    #obtention des coins de la piece avec la méthode des bon traits à relever
     corners = cv2.goodFeaturesToTrack(gray, 300, 0.01, 5)
     corners = np.int0(corners)
-    #simplification de la série de données
+    #simplification de la serie de donnees
     data = []
     for corner in corners:
         x, y = corner.ravel()
         data.append([x,y])
-    #acquisition des valeurs nécessaires à l'étude des pièces
+    #acquisition des valeurs necessaires à l'étude des pieces
     height, width = img.shape[:2]
     qdens, q1, q2, q3, q4 = density(data, width, height)
     angles = findangle(data, width, height, qdens)
-    #vérification de la position des angles
+    #verification de la position des angles
     angles, qdens, q1, q2, q3, q4 = verifangle(angles,qdens, q1, q2, q3, q4)
     #mise en place des coins
     corner1 = side_test(q1, angles[0], qdens[0])
     corner2 = side_test(q2, angles[1], qdens[1])
     corner3 = side_test(q3, angles[2], qdens[2])
     corner4 = side_test(q4, angles[3], qdens[3])
-    side1 = fullside(corner1, corner2, width/2, 0, 0, width, height/2, height/2)
-    side2 = fullside(corner2, corner3, width, height/2, width/2, width/2, 0, height)
-    side3 = fullside(corner3, corner4, width/2, height, width, 0, height/2, height/2)
-    side4 = fullside(corner4, corner1, 0, height/2, width/2, width/2, height, 0)
-    #dessin corner1
+    side1, side2, side3, side4 = fullside(corner1, corner2, corner3,corner4)
+    #dessin sides
     posx, posy = zip(*side1)
-    img[posy[:], posx[:]] = [0,0,255]
+    img[posy[:], posx[:]] = [255, 0, 0]
     posx, posy = zip(*side2)
-    img[posy[:], posx[:]] = [255,0,0]
-
+    img[posy[:], posx[:]] = [0, 0, 255]
+    posx, posy = zip(*side3)
+    img[posy[:], posx[:]] = [255, 0, 0]
+    posx, posy = zip(*side4)
+    img[posy[:], posx[:]] = [0, 0, 255]
 
     #dessin angles
     posx, posy = zip(*angles)
     img[posy[:], posx[:]] = [255,255,255]
-    #enregistrement de l'image dans un fichier
-    cv2.imwrite("imtest/" + path, img)
+
+    # definition du type de pieces
+    sides = [side1, side2, side3, side4]
+    numberofBorder = 0
+    if len(sides) > 1:
+        for side in sides:
+            if len(side) < 10:
+                numberofBorder = numberofBorder + 1
+    else:
+        numberofBorder = -1
+
+    # ecriture des images
+    if numberofBorder == 1:
+        cv2.imwrite("resultShiTomasi/border/" + path, img)
+    elif numberofBorder > 1:
+        cv2.imwrite("resultShiTomasi/corner/" + path, img)
+    elif numberofBorder == -1:
+        cv2.imwrite("resultShiTomasi/undefined/" + path, img)
+    else:
+        cv2.imwrite("resultShiTomasi/inner/" + path, img)
 
 
 if __name__ == "__main__":
+    # création des dossiers si non existants
+    if not os.path.exists("resultShiTomasi/inner/"):
+        os.makedirs("resultShiTomasi/inner/")
+    if not os.path.exists("resultShiTomasi/border/"):
+        os.makedirs("resultShiTomasi/border/")
+    if not os.path.exists("resultShiTomasi/undefined/"):
+        os.makedirs("resultShiTomasi/undefined/")
+    if not os.path.exists("resultShiTomasi/corner/"):
+        os.makedirs("resultShiTomasi/corner/")
+
     listing = os.listdir("img")
     for list in listing:
         working(list)
