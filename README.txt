@@ -17,5 +17,5 @@ Interpret results :
 	after executing the scripts, you will get new images in folder resultHarris or resultShiTomasi depending on the script you used.
 	Each image will be classified in one of the folder corresponding to the feature of the piece.
 	in Harris, each side of the piece will be colored in another color.
-	in ShiTomasi piece's corners will be printed in white and sides will be red or blue.
+	in ShiTomasi, piece's corners will be printed in white. The points in blue are the corners befor corrections.
 	And it's possible to observe precision because piece's contour is in green.

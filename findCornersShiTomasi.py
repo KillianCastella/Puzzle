@@ -313,7 +313,7 @@ def fullside(c1, c2, c3, c4):
     side4 = points[p1][3] + points[p2][3]
     points[p1][2] = 1
     points[p2][2] = 1
-    return side1, side2, side3, side4
+    return [side1, side2, side3, side4]
 
 def working(path):
     '''Méthode gérant la classification des pièces ainsi que les modifications de leur image.'''
@@ -340,6 +340,11 @@ def working(path):
     height, width = img.shape[:2]
     qdens, q1, q2, q3, q4 = density(data, width, height)
     angles = findangle(data, width, height, qdens)
+    # dessin des points de base
+    posx, posy = zip(*data)
+    img[posy[:], posx[:]] = [0, 0, 0]
+    posx, posy = zip(*angles)
+    img[posy[:], posx[:]] = [255, 0, 0]
     #verification de la position des angles
     angles, qdens, q1, q2, q3, q4 = verifangle(angles,qdens, q1, q2, q3, q4)
     #mise en place des coins
@@ -347,52 +352,30 @@ def working(path):
     corner2 = side_test(q2, angles[1], qdens[1])
     corner3 = side_test(q3, angles[2], qdens[2])
     corner4 = side_test(q4, angles[3], qdens[3])
-    side1, side2, side3, side4 = fullside(corner1, corner2, corner3,corner4)
-    #dessin sides
+    side1, side2, side3, side4 = fullside(corner1, corner2, corner3, corner4)
+''' ce morceau de code ne s'affiche pas pour le moment,
+    d'où le commentaire.
+    # dessin corner1
     posx, posy = zip(*side1)
-    img[posy[:], posx[:]] = [255, 0, 0]
+    img[posy[:], posx[:]] = [0, 0, 255]
     posx, posy = zip(*side2)
-    img[posy[:], posx[:]] = [0, 0, 255]
-    posx, posy = zip(*side3)
     img[posy[:], posx[:]] = [255, 0, 0]
-    posx, posy = zip(*side4)
+    posx, posy = zip(*side3)
     img[posy[:], posx[:]] = [0, 0, 255]
-
+    posx, posy = zip(*side4)
+    img[posy[:], posx[:]] = [255, 0, 0]'''
     #dessin angles
     posx, posy = zip(*angles)
     img[posy[:], posx[:]] = [255,255,255]
 
-    # definition du type de pieces
-    sides = [side1, side2, side3, side4]
-    numberofBorder = 0
-    if len(sides) > 1:
-        for side in sides:
-            if len(side) < 10:
-                numberofBorder = numberofBorder + 1
-    else:
-        numberofBorder = -1
-
     # ecriture des images
-    if numberofBorder == 1:
-        cv2.imwrite("resultShiTomasi/border/" + path, img)
-    elif numberofBorder > 1:
-        cv2.imwrite("resultShiTomasi/corner/" + path, img)
-    elif numberofBorder == -1:
-        cv2.imwrite("resultShiTomasi/undefined/" + path, img)
-    else:
-        cv2.imwrite("resultShiTomasi/inner/" + path, img)
+    cv2.imwrite("resultShiTomasi/" + path, img)
 
 
 if __name__ == "__main__":
     # création des dossiers si non existants
-    if not os.path.exists("resultShiTomasi/inner/"):
-        os.makedirs("resultShiTomasi/inner/")
-    if not os.path.exists("resultShiTomasi/border/"):
-        os.makedirs("resultShiTomasi/border/")
-    if not os.path.exists("resultShiTomasi/undefined/"):
-        os.makedirs("resultShiTomasi/undefined/")
-    if not os.path.exists("resultShiTomasi/corner/"):
-        os.makedirs("resultShiTomasi/corner/")
+    if not os.path.exists("resultShiTomasi/"):
+        os.makedirs("resultShiTomasi/")
 
     listing = os.listdir("img")
     for list in listing:
